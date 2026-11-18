@@ -1,0 +1,45 @@
+JobID 41207898 newborn TRF diagnostic on cpu-q-62 at Wed Nov 18 01:20:20 GMT 2026
+loading features and fit EEG
+fit audio01 samples=644007
+fit audio02 samples=1275300
+fit audio03 samples=1778829
+fit audio04 samples=2337114
+fit audio05 samples=3047616
+fit audio06 samples=3727347
+fit audio07 samples=4474938
+fit audio08 samples=5033145
+fit audio09 samples=5766462
+fit audio10 samples=6577623
+fit shf01 samples=7231809
+fit shf05 samples=7934979
+fit shf08 samples=8499543
+fit shf10 samples=9304191
+loading development EEG
+dev penalty=7.0853e+00 mse=0.979464 corr=0.0076
+dev penalty=2.2406e+01 mse=0.979464 corr=0.0076
+dev penalty=7.0853e+01 mse=0.979464 corr=0.0076
+dev penalty=2.2406e+02 mse=0.979464 corr=0.0076
+dev penalty=7.0853e+02 mse=0.979464 corr=0.0076
+dev penalty=2.2406e+03 mse=0.979463 corr=0.0076
+dev penalty=7.0853e+03 mse=0.979462 corr=0.0076
+dev penalty=2.2406e+04 mse=0.979460 corr=0.0076
+dev penalty=7.0853e+04 mse=0.979455 corr=0.0075
+dev penalty=2.2406e+05 mse=0.979449 corr=0.0072
+dev penalty=7.0853e+05 mse=0.979443 corr=0.0065
+dev penalty=2.2406e+06 mse=0.979441 corr=0.0057
+dev penalty=7.0853e+06 mse=0.979449 corr=0.0048
+dev penalty=2.2406e+07 mse=0.979473 corr=0.0042
+dev penalty=7.0853e+07 mse=0.979499 corr=0.0037
+dev penalty=2.2406e+08 mse=0.979515 corr=0.0033
+dev penalty=7.0853e+08 mse=0.979521 corr=0.0029
+dev shrinkage=0 mse=1.003746 corr=0.0033
+dev shrinkage=1 mse=1.002510 corr=0.0033
+dev shrinkage=2 mse=1.001365 corr=0.0033
+dev shrinkage=5 mse=0.998390 corr=0.0033
+dev shrinkage=10 mse=0.994604 corr=0.0033
+dev shrinkage=20 mse=0.989743 corr=0.0033
+dev shrinkage=50 mse=0.983775 corr=0.0033
+loading test EEG
+dev trf 0.6562641851363624 0.005671032773609763 mismatch 0.6563151641989181 melody 0.6594868314967706 0.003261987589518707
+test trf 0.7325339141801777 0.0024140399520459948 mismatch 0.7325592012015301 melody 0.7347965447036401 0.0016388250247773492
+finished at Wed Nov 18 01:27:29 GMT 2026
