@@ -1,0 +1,18 @@
+JobID 41203814 newborn world model eval on gpu-q-34 at Wed Nov 18 00:22:39 GMT 2026
+GPU 0: NVIDIA A100-SXM4-80GB (UUID: GPU-c97707b9-ca55-d4f5-d175-2a5e4ba51668)
+building audio features
+loaded epoch 12 train_mse 1.0008314064332655
+loading test EEG
+TEST {
+  "mae": 0.7345897947038923,
+  "mse": 1.007910177537373,
+  "rmse": 1.0039472981871973,
+  "first_30s_mae": 0.736018596802439,
+  "first_30s_mse": 1.0098864376544952,
+  "second_30s_mae": 0.7331609926053456,
+  "second_30s_mse": 1.0059339080538068,
+  "persistence_mae": 1.0672862648963928,
+  "train_mean_mae": 0.7325244396924973,
+  "trials": 70
+}
+finished at Wed Nov 18 00:23:36 GMT 2026

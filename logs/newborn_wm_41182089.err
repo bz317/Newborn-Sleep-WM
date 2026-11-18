@@ -1,0 +1,24 @@
+Loading rhel8/default-amp
+  Loading requirement: rhel8/slurm singularity/current rhel8/global cuda/11.4
+    libpciaccess/0.16/gcc-9.4.0-6fonbj6 libiconv/1.16/gcc-9.4.0-ahebbov
+    libxml2/2.9.12/gcc-9.4.0-gnknt5e ncurses/6.2/gcc-9.4.0-aiirok7
+    hwloc/2.5.0/gcc-9.4.0-7sqomga libevent/2.1.12/gcc-9.4.0-hgny7cm
+    numactl/2.0.14/gcc-9.4.0-52dwc6n cuda/11.4.0/gcc-9.4.0-3hnxhjt
+    gdrcopy/2.2/gcc-9.4.0-e4igtfp knem/1.1.4/gcc-9.4.0-bpbxgva
+    libnl/3.3.0/gcc-9.4.0-whwhrwb rdma-core/34.0/gcc-9.4.0-5eo5n2u
+    ucx/1.11.1/gcc-9.4.0-lktqyl4 openmpi/4.1.1/gcc-9.4.0-epagguv
+/home/bz317/rds/rds-posecraft-5SVx1x5hoTY/bz317/miniconda3/envs/normwear-env/lib/python3.11/site-packages/torch/nn/modules/transformer.py:379: UserWarning: enable_nested_tensor is True, but self.use_nested_tensor is False because encoder_layer.norm_first was True
+  warnings.warn(
+Traceback (most recent call last):
+  File "/rds/project/rds-5SVx1x5hoTY/bz317/WM_Biomedicine/Ours/newborn_world_model/train.py", line 181, in <module>
+    main()
+  File "/rds/project/rds-5SVx1x5hoTY/bz317/WM_Biomedicine/Ours/newborn_world_model/train.py", line 156, in main
+    report = evaluate(model, test_eeg, audio, test_subjects, mean, device)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/rds/project/rds-5SVx1x5hoTY/bz317/WM_Biomedicine/Ours/newborn_world_model/train.py", line 57, in evaluate
+    first, second = predict_minute(model, eeg_w, audio_w)
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/rds/project/rds-5SVx1x5hoTY/bz317/WM_Biomedicine/Ours/newborn_world_model/train.py", line 20, in predict_minute
+    s0, s1 = eeg[0], eeg[1]
+                     ~~~^^^
+IndexError: index 1 is out of bounds for dimension 0 with size 1

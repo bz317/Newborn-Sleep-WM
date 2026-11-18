@@ -1,0 +1,18 @@
+JobID 41182089 newborn world model on gpu-q-34 at Tue Nov 17 23:43:44 GMT 2026
+GPU 0: NVIDIA A100-SXM4-80GB (UUID: GPU-c97707b9-ca55-d4f5-d175-2a5e4ba51668)
+building audio features
+loading training EEG
+windows=3432 stride_samples=1000
+epoch=001 train_mse=1.228196 teacher=True
+epoch=002 train_mse=1.040071 teacher=True
+epoch=003 train_mse=1.012610 teacher=False
+epoch=004 train_mse=1.009885 teacher=False
+epoch=005 train_mse=1.008077 teacher=False
+epoch=006 train_mse=1.006810 teacher=False
+epoch=007 train_mse=1.005828 teacher=False
+epoch=008 train_mse=1.005053 teacher=False
+epoch=009 train_mse=1.004295 teacher=False
+epoch=010 train_mse=1.003459 teacher=False
+epoch=011 train_mse=1.002290 teacher=False
+epoch=012 train_mse=1.000831 teacher=False
+loading test EEG
