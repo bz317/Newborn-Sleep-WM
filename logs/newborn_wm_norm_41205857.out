@@ -1,0 +1,51 @@
+JobID 41205857 newborn world model on gpu-q-5 at Wed Nov 18 00:45:19 GMT 2026
+GPU 0: NVIDIA A100-SXM4-80GB (UUID: GPU-6b950f6c-51d3-ad8d-8de1-2b8bb81c4ce9)
+building audio features
+loading training EEG
+windows=3042 stride_samples=1000
+epoch=001 train_mse=1.254384 teacher=True
+epoch=002 train_mse=1.049471 teacher=True
+epoch=003 train_mse=1.025257 teacher=False
+epoch=004 train_mse=1.018115 teacher=False
+epoch=005 train_mse=1.014378 teacher=False
+epoch=006 train_mse=1.012142 teacher=False
+epoch=007 train_mse=1.010654 teacher=False
+epoch=008 train_mse=1.009500 teacher=False
+epoch=009 train_mse=1.008539 teacher=False
+epoch=010 train_mse=1.007552 teacher=False
+epoch=011 train_mse=1.006336 teacher=False
+epoch=012 train_mse=1.004529 teacher=False
+loading development and test EEG
+DEV {
+  "mae": 0.659066469328744,
+  "mse": 0.9849999023335321,
+  "first_30s_mae": 0.662006550175803,
+  "second_30s_mae": 0.6561263891203063,
+  "first_30s_pred_std": 0.06870953008266432,
+  "first_30s_target_std": 0.8689098547611918,
+  "first_30s_correlation": 0.003964743986578798,
+  "second_30s_pred_std": 0.046823951256062306,
+  "second_30s_target_std": 0.8696541205048561,
+  "second_30s_correlation": 0.0029716069623673055,
+  "mismatched_first_30s_mae": 0.6619923006211008,
+  "mismatched_second_30s_mae": 0.6560149252414703,
+  "train_mean_mae": 0.6562758667128427,
+  "trials": 70
+}
+TEST {
+  "mae": 0.7349056946379798,
+  "mse": 1.0082955266748155,
+  "first_30s_mae": 0.73548022210598,
+  "second_30s_mae": 0.7343311535460608,
+  "first_30s_pred_std": 0.08123630907918726,
+  "first_30s_target_std": 0.9394494916711534,
+  "first_30s_correlation": 0.0020028216381725444,
+  "second_30s_pred_std": 0.05618421845138073,
+  "second_30s_target_std": 0.9401174383504051,
+  "second_30s_correlation": 0.0019273023460497397,
+  "mismatched_first_30s_mae": 0.7354759067296982,
+  "mismatched_second_30s_mae": 0.7343152391059058,
+  "train_mean_mae": 0.7325244396924973,
+  "trials": 70
+}
+finished at Wed Nov 18 00:54:30 GMT 2026

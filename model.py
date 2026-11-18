@@ -38,16 +38,13 @@ class WorldModel(nn.Module):
         self.forecast_mix = nn.TransformerEncoder(layer, num_layers=1)
         self.decoder = nn.Linear(D_MODEL, WIN)
 
-    def encode_eeg(self, eeg):
-        """eeg [B, 3000, 63] in released units. Returns tokens and the scale of this window."""
+    def encode_eeg(self, eeg, mean, std):
+        """eeg [B, 3000, 63]. mean and std are [B, 63] from the real 60 s context."""
         series = eeg.transpose(1, 2)
-        mean = series.mean(dim=-1, keepdim=True)
-        std = series.std(dim=-1, keepdim=True).clamp_min(1e-5)
-        series = (series - mean) / std
+        series = (series - mean.unsqueeze(-1)) / std.unsqueeze(-1)
         tokens = self.eeg_temporal(series)
         tokens = tokens + self.electrode.weight
-        tokens = self.channel_encoder(tokens)
-        return tokens, mean.squeeze(-1), std.squeeze(-1)
+        return self.channel_encoder(tokens)
 
     def encode_audio(self, features):
         """features [B, 3000, 66], already z-scored. Causal 100 ms tokens [B, 300, 128]."""
@@ -59,13 +56,15 @@ class WorldModel(nn.Module):
         update, _ = self.cross(eeg_tokens, audio_tokens, audio_tokens, need_weights=False)
         return eeg_tokens + update
 
-    def forward(self, eeg_prev, eeg_cur, audio_prev, audio_cur, audio_future):
-        """Predict the next 30 s of EEG, in the same units as eeg_cur.
+    def forward(self, eeg_prev, eeg_cur, audio_prev, audio_cur, audio_future, mean, std):
+        """Predict the next 30 s of EEG in the original units.
 
+        mean and std are fixed from the real 60 s context. They are reused when
+        eeg_cur is a prediction, so a low-variance forecast cannot shrink the next step.
         audio_future is the real music during the window being predicted.
         """
-        prev, _, _ = self.encode_eeg(eeg_prev)
-        cur, mean, std = self.encode_eeg(eeg_cur)
+        prev = self.encode_eeg(eeg_prev, mean, std)
+        cur = self.encode_eeg(eeg_cur, mean, std)
         prev = self._condition(prev, self.encode_audio(audio_prev)) + self.window[0]
         cur = self._condition(cur, self.encode_audio(audio_cur)) + self.window[1]
         context = torch.cat([prev, cur], dim=1)

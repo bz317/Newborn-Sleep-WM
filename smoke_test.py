@@ -6,6 +6,7 @@ import torch
 from audio_features import features_for_waveform, mel_filterbank
 from config import AUDIO_SR, D_MODEL, FEAT_DIM, N_EEG, N_FFT, N_MELS, WIN
 from model import WorldModel
+from train import reference_stats
 
 
 def main():
@@ -13,9 +14,25 @@ def main():
     model = WorldModel()
     eeg0 = torch.randn(2, WIN, N_EEG)
     eeg1 = torch.randn(2, WIN, N_EEG)
+    mean, std = reference_stats(eeg0, eeg1)
     audio = torch.randn(2, 3, WIN, FEAT_DIM)
-    pred = model(eeg0, eeg1, audio[:, 0], audio[:, 1], audio[:, 2])
+    pred = model(eeg0, eeg1, audio[:, 0], audio[:, 1], audio[:, 2], mean, std)
     assert pred.shape == (2, WIN, N_EEG), pred.shape
+
+    class Ramp(torch.nn.Module):
+        def forward(self, tokens):
+            ramp = torch.linspace(-1.0, 1.0, WIN, device=tokens.device)
+            return ramp.view(1, 1, -1).expand(tokens.shape[0], tokens.shape[1], WIN)
+
+    model.decoder = Ramp()
+    tiny = torch.randn(1, WIN, N_EEG) * 0.01
+    ref_mean, ref_std = reference_stats(eeg0[:1], eeg1[:1])
+    scaled = model(eeg0[:1], tiny, audio[:1, 0], audio[:1, 1], audio[:1, 2], ref_mean, ref_std)
+    expected = float(ref_std.mean() * torch.linspace(-1.0, 1.0, WIN).std(unbiased=False))
+    got = float(scaled.std(dim=1).mean())
+    if abs(got - expected) / expected > 0.05:
+        raise AssertionError(f"fixed scale failed: output std {got} vs reference {expected}")
+    model.decoder = WorldModel().decoder
 
     features = torch.randn(2, WIN, FEAT_DIM)
     tokens = model.encode_audio(features)
@@ -44,10 +61,11 @@ def main():
         torch.randn(2, WIN, FEAT_DIM),
         torch.randn(2, WIN, N_EEG),
     )
+    stats = reference_stats(batch[0], batch[1])
     before = None
     for _ in range(4):
         optimizer.zero_grad(set_to_none=True)
-        out = model(*batch[:5])
+        out = model(*batch[:5], *stats)
         loss = torch.nn.functional.mse_loss(out, batch[5])
         before = float(loss) if before is None else before
         loss.backward()

@@ -1,13 +1,13 @@
 #!/bin/bash
 # Action-conditioned newborn world model. Test evaluation runs after the last epoch.
-#SBATCH -J newborn_wm
+#SBATCH -J newborn_wm_norm
 #SBATCH -A OZTIRELI-SL2-GPU
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=4
 #SBATCH --gres=gpu:1
 #SBATCH --mem=48000
-#SBATCH --time=08:00:00
+#SBATCH --time=01:00:00
 #SBATCH -p ampere
 #SBATCH --qos=gpu1
 #SBATCH --mail-user=bz317@cam.ac.uk
@@ -28,5 +28,5 @@ mkdir -p "$ROOT/logs" "$TMPDIR"
 cd "$ROOT"
 echo "JobID ${SLURM_JOB_ID:-local} newborn world model on $(hostname) at $(date)"
 nvidia-smi -L
-"$PY" train.py --output-dir "$ROOT/runs/action"
+"$PY" train.py --output-dir "$ROOT/runs/fixed_norm"
 echo "finished at $(date)"

@@ -15,21 +15,31 @@ from data import NAMES, WindowDataset, load_eeg, load_split, melody_lengths
 from model import WorldModel
 
 
+def reference_stats(eeg_prev, eeg_cur):
+    """Mean and standard deviation of the real 60 s context, per channel."""
+    context = torch.cat([eeg_prev, eeg_cur], dim=1)
+    mean = context.mean(dim=1)
+    std = context.std(dim=1, unbiased=False).clamp_min(1e-5)
+    return mean, std
+
+
 def predict_minute(model, eeg, audio):
     """Two-step rollout. eeg is [B, 4, 3000, 63] and audio is [B, 4, 3000, 66]."""
     s0, s1 = eeg[:, 0], eeg[:, 1]
     a0, a1, a2, a3 = audio[:, 0], audio[:, 1], audio[:, 2], audio[:, 3]
-    first = model(s0, s1, a0, a1, a2)
-    second = model(s1, first, a1, a2, a3)
+    mean, std = reference_stats(s0, s1)
+    first = model(s0, s1, a0, a1, a2, mean, std)
+    second = model(s1, first, a1, a2, a3, mean, std)
     return first, second
 
 
 def batch_loss(model, eeg, audio, teacher):
     s0, s1, s2, s3 = eeg[:, 0], eeg[:, 1], eeg[:, 2], eeg[:, 3]
     a0, a1, a2, a3 = audio[:, 0], audio[:, 1], audio[:, 2], audio[:, 3]
-    first = model(s0, s1, a0, a1, a2)
+    mean, std = reference_stats(s0.detach(), s1.detach())
+    first = model(s0, s1, a0, a1, a2, mean, std)
     second_input = s2 if teacher else first
-    second = model(s1, second_input, a1, a2, a3)
+    second = model(s1, second_input, a1, a2, a3, mean, std)
     loss1 = torch.nn.functional.mse_loss(first, s2)
     loss2 = torch.nn.functional.mse_loss(second, s3)
     return 0.5 * (loss1 + loss2), first.detach(), second.detach()
@@ -42,10 +52,33 @@ def score(pred, target):
     return mae, mse
 
 
+def spread(pred, target):
+    """Mean per-channel standard deviation and Pearson correlation over time."""
+    pred_std = float(pred.std(axis=0).mean())
+    target_std = float(target.std(axis=0).mean())
+    corrs = []
+    for channel in range(pred.shape[1]):
+        left = pred[:, channel]
+        right = target[:, channel]
+        if left.std() < 1e-8 or right.std() < 1e-8:
+            corrs.append(0.0)
+        else:
+            corrs.append(float(np.corrcoef(left, right)[0, 1]))
+    return pred_std, target_std, float(np.mean(corrs))
+
+
+def _blank_baby():
+    return {"n": 0, "mae": 0.0, "mse": 0.0, "first_mae": 0.0, "second_mae": 0.0}
+
+
 def evaluate(model, eeg, audio, subjects, channel_mean, device):
     model.eval()
     sums = np.zeros(10)
+    shape = np.zeros(6)
+    mismatch = np.zeros(4)
+    babies = {str(subject): _blank_baby() for subject in subjects}
     n = 0
+    wrong = {NAMES[i]: NAMES[(i + 1) % len(NAMES)] for i in range(len(NAMES))}
     with torch.no_grad():
         for name in NAMES:
             for subject in subjects:
@@ -57,6 +90,11 @@ def evaluate(model, eeg, audio, subjects, channel_mean, device):
                 first, second = predict_minute(model, eeg_w, audio_w)
                 first = first[0].cpu().numpy()
                 second = second[0].cpu().numpy()
+                other = audio[wrong[name]][:EXAMPLE]
+                other_w = torch.from_numpy(other.reshape(1, 4, WIN, -1)).to(device)
+                bad_first, bad_second = predict_minute(model, eeg_w, other_w)
+                bad_first = bad_first[0].cpu().numpy()
+                bad_second = bad_second[0].cpu().numpy()
                 target1 = series[2 * WIN:3 * WIN]
                 target2 = series[3 * WIN:4 * WIN]
                 full_pred = np.concatenate([first, second], axis=0)
@@ -70,7 +108,28 @@ def evaluate(model, eeg, audio, subjects, channel_mean, device):
                     *score(held, full_tgt),
                     *score(mean_pred, full_tgt),
                 )
+                shape += (*spread(first, target1), *spread(second, target2))
+                mismatch += (
+                    *score(bad_first, target1),
+                    *score(bad_second, target2),
+                )
+                baby = babies[str(subject)]
+                baby["n"] += 1
+                baby["mae"] += score(full_pred, full_tgt)[0]
+                baby["mse"] += score(full_pred, full_tgt)[1]
+                baby["first_mae"] += score(first, target1)[0]
+                baby["second_mae"] += score(second, target2)[0]
                 n += 1
+    per_baby = {}
+    for subject, baby in babies.items():
+        count = max(1, baby["n"])
+        per_baby[subject] = {
+            "trials": baby["n"],
+            "mae": baby["mae"] / count,
+            "mse": baby["mse"] / count,
+            "first_30s_mae": baby["first_mae"] / count,
+            "second_30s_mae": baby["second_mae"] / count,
+        }
     return {
         "trials": n,
         "first_30s_mae": float(sums[0] / n),
@@ -84,7 +143,45 @@ def evaluate(model, eeg, audio, subjects, channel_mean, device):
         "persistence_mse": float(sums[7] / n),
         "train_mean_mae": float(sums[8] / n),
         "train_mean_mse": float(sums[9] / n),
+        "first_30s_pred_std": float(shape[0] / n),
+        "first_30s_target_std": float(shape[1] / n),
+        "first_30s_correlation": float(shape[2] / n),
+        "second_30s_pred_std": float(shape[3] / n),
+        "second_30s_target_std": float(shape[4] / n),
+        "second_30s_correlation": float(shape[5] / n),
+        "mismatched_first_30s_mae": float(mismatch[0] / n),
+        "mismatched_first_30s_mse": float(mismatch[1] / n),
+        "mismatched_second_30s_mae": float(mismatch[2] / n),
+        "mismatched_second_30s_mse": float(mismatch[3] / n),
+        "per_baby": per_baby,
     }
+
+
+def write_reports(args, epochs, n_train, fit_subjects, dev_subjects, test_subjects, dev_report, test_report):
+    common = {
+        "model": "newborn_world_model",
+        "normalization": "fixed statistics from the real 60 s context, reused for both rollout steps",
+        "music_input": True,
+        "future_music_visible": True,
+        "context_s": 60,
+        "pred_s": 30,
+        "rollouts": N_FORECASTS,
+        "fit_subjects": fit_subjects,
+        "dev_subjects": dev_subjects,
+        "test_subjects": test_subjects,
+        "train_windows": n_train,
+        "epochs": epochs,
+        "teacher_epochs": args.teacher_epochs,
+    }
+    dev_report.update(common)
+    test_report.update(common)
+    (args.output_dir / "dev.json").write_text(json.dumps(dev_report, indent=2) + "\n")
+    (args.output_dir / "test.json").write_text(json.dumps(test_report, indent=2) + "\n")
+    brief = ("mae", "mse", "first_30s_mae", "second_30s_mae", "first_30s_pred_std", "first_30s_target_std",
+             "first_30s_correlation", "second_30s_pred_std", "second_30s_target_std", "second_30s_correlation",
+             "mismatched_first_30s_mae", "mismatched_second_30s_mae", "train_mean_mae", "trials")
+    print("DEV", json.dumps({key: dev_report[key] for key in brief}, indent=2), flush=True)
+    print("TEST", json.dumps({key: test_report[key] for key in brief}, indent=2), flush=True)
 
 
 def channel_mean(eeg, subjects):
@@ -112,11 +209,15 @@ def main():
     train_subjects, test_subjects = load_split()
     if len(train_subjects) != 44 or len(test_subjects) != 5:
         raise RuntimeError(f"expected 44/5, got {len(train_subjects)}/{len(test_subjects)}")
+    dev_subjects = [4, 11, 20, 33, 46]
+    if any(subject not in train_subjects for subject in dev_subjects):
+        raise RuntimeError(f"dev subjects are not inside the training pool: {dev_subjects}")
+    fit_subjects = [subject for subject in train_subjects if subject not in set(dev_subjects)]
     print("building audio features", flush=True)
     lengths = melody_lengths()
     audio, _, _ = ensure_features(lengths)
     n_train = sum(
-        len(range(0, length - EXAMPLE + 1, args.stride)) * len(train_subjects)
+        len(range(0, length - EXAMPLE + 1, args.stride)) * len(fit_subjects)
         for length in lengths.values()
     )
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -127,36 +228,17 @@ def main():
         model.load_state_dict(saved["model"])
         mean = saved["channel_mean"]
         print(f"loaded epoch {saved.get('epoch')} train_mse {saved.get('train_mse')}", flush=True)
-        print("loading test EEG", flush=True)
-        test_eeg = load_eeg(test_subjects)
-        report = evaluate(model, test_eeg, audio, test_subjects, mean, device)
-        report.update({
-            "model": "newborn_world_model",
-            "music_input": True,
-            "future_music_visible": True,
-            "context_s": 60,
-            "pred_s": 30,
-            "rollouts": N_FORECASTS,
-            "train_subjects": train_subjects,
-            "test_subjects": test_subjects,
-            "train_windows": n_train,
-            "epochs": saved.get("epoch", args.epochs),
-            "teacher_epochs": args.teacher_epochs,
-        })
-        (args.output_dir / "test.json").write_text(json.dumps(report, indent=2) + "\n")
-        print("TEST", json.dumps({
-            key: report[key]
-            for key in (
-                "mae", "mse", "rmse", "first_30s_mae", "first_30s_mse",
-                "second_30s_mae", "second_30s_mse", "persistence_mae", "train_mean_mae", "trials",
-            )
-        }, indent=2), flush=True)
+        print("loading development and test EEG", flush=True)
+        heldout_eeg = load_eeg(dev_subjects + test_subjects)
+        dev_report = evaluate(model, heldout_eeg, audio, dev_subjects, mean, device)
+        test_report = evaluate(model, heldout_eeg, audio, test_subjects, mean, device)
+        write_reports(args, saved.get("epoch", args.epochs), n_train, fit_subjects, dev_subjects, test_subjects, dev_report, test_report)
         return
 
     print("loading training EEG", flush=True)
-    train_eeg = load_eeg(train_subjects)
-    mean = channel_mean(train_eeg, train_subjects)
-    dataset = WindowDataset(train_eeg, audio, train_subjects, args.stride)
+    train_eeg = load_eeg(fit_subjects)
+    mean = channel_mean(train_eeg, fit_subjects)
+    dataset = WindowDataset(train_eeg, audio, fit_subjects, args.stride)
     loader = DataLoader(dataset, batch_size=args.batch_size, shuffle=True, num_workers=0)
     print(f"windows={len(dataset)} stride_samples={args.stride}", flush=True)
     optimizer = torch.optim.AdamW(model.parameters(), lr=args.lr, weight_decay=0.01)
@@ -186,30 +268,11 @@ def main():
     (args.output_dir / "train.json").write_text(json.dumps(history, indent=2) + "\n")
 
     del loader, dataset, train_eeg
-    print("loading test EEG", flush=True)
-    test_eeg = load_eeg(test_subjects)
-    report = evaluate(model, test_eeg, audio, test_subjects, mean, device)
-    report.update({
-        "model": "newborn_world_model",
-        "music_input": True,
-        "future_music_visible": True,
-        "context_s": 60,
-        "pred_s": 30,
-        "rollouts": N_FORECASTS,
-        "train_subjects": train_subjects,
-        "test_subjects": test_subjects,
-        "train_windows": n_train,
-        "epochs": args.epochs,
-        "teacher_epochs": args.teacher_epochs,
-    })
-    (args.output_dir / "test.json").write_text(json.dumps(report, indent=2) + "\n")
-    print("TEST", json.dumps({
-        key: report[key]
-        for key in (
-            "mae", "mse", "rmse", "first_30s_mae", "first_30s_mse",
-            "second_30s_mae", "second_30s_mse", "persistence_mae", "train_mean_mae", "trials",
-        )
-    }, indent=2), flush=True)
+    print("loading development and test EEG", flush=True)
+    heldout_eeg = load_eeg(dev_subjects + test_subjects)
+    dev_report = evaluate(model, heldout_eeg, audio, dev_subjects, mean, device)
+    test_report = evaluate(model, heldout_eeg, audio, test_subjects, mean, device)
+    write_reports(args, args.epochs, n_train, fit_subjects, dev_subjects, test_subjects, dev_report, test_report)
 
 
 if __name__ == "__main__":

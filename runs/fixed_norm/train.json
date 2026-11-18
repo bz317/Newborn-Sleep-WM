@@ -1,0 +1,62 @@
+[
+  {
+    "epoch": 1,
+    "train_mse": 1.2543842270529482,
+    "teacher_forcing": true
+  },
+  {
+    "epoch": 2,
+    "train_mse": 1.04947147269064,
+    "teacher_forcing": true
+  },
+  {
+    "epoch": 3,
+    "train_mse": 1.0252571454728456,
+    "teacher_forcing": false
+  },
+  {
+    "epoch": 4,
+    "train_mse": 1.018115120448226,
+    "teacher_forcing": false
+  },
+  {
+    "epoch": 5,
+    "train_mse": 1.0143780071903106,
+    "teacher_forcing": false
+  },
+  {
+    "epoch": 6,
+    "train_mse": 1.0121417687489436,
+    "teacher_forcing": false
+  },
+  {
+    "epoch": 7,
+    "train_mse": 1.0106539647881723,
+    "teacher_forcing": false
+  },
+  {
+    "epoch": 8,
+    "train_mse": 1.0095002796993218,
+    "teacher_forcing": false
+  },
+  {
+    "epoch": 9,
+    "train_mse": 1.0085394706951796,
+    "teacher_forcing": false
+  },
+  {
+    "epoch": 10,
+    "train_mse": 1.0075520000357443,
+    "teacher_forcing": false
+  },
+  {
+    "epoch": 11,
+    "train_mse": 1.0063361613708135,
+    "teacher_forcing": false
+  },
+  {
+    "epoch": 12,
+    "train_mse": 1.0045285808029025,
+    "teacher_forcing": false
+  }
+]
