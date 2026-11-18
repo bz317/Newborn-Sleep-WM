@@ -19,7 +19,9 @@ DEV_SUBJECTS = [4, 11, 20, 33, 46]
 # Stimulus time minus EEG time, in 10 ms samples. Positive: sound happened earlier.
 LAGS = np.array([-5, 0, 5, 10, 15, 20, 25, 30, 35, 40], dtype=np.int64)
 N_COMPACT = 10
-SHRINKAGE = [0, 1, 2, 5, 10, 20, 50]
+# Direct mixture with the constant channel mean. w=0 is that mean.
+# The old penalty grid stopped at lambda=50, which still kept w=39/(39+50).
+TEMPLATE_WEIGHTS = [round(float(weight), 2) for weight in np.linspace(0.0, 1.0, 11)]
 
 
 def compact_features(features):
@@ -50,6 +52,11 @@ def valid_bounds(length, lags):
 
 
 def accumulate(eeg_map, features, subjects, lags):
+    """Pool babies into one normal equation.
+
+    Every baby hears the same audio matrix, so this estimates the across-baby
+    mean EEG. It does not estimate a baby-specific latency or topography.
+    """
     width = N_COMPACT * len(lags) + 1
     xtx = np.zeros((width, width), dtype=np.float64)
     xty = np.zeros((width, N_EEG), dtype=np.float64)
@@ -115,8 +122,7 @@ def melody_averages(eeg_map, subjects):
     return averages, counts, channel_sum / channel_count
 
 
-def shrunk_average(average, count, grand, shrinkage):
-    weight = count / (count + shrinkage)
+def weighted_template(average, grand, weight):
     return weight * average + (1.0 - weight) * grand
 
 
@@ -195,7 +201,7 @@ def main():
     features, _, _ = ensure_features(melody_lengths())
     fit_eeg = load_eeg(fit_subjects)
     xtx, xty, count = accumulate(fit_eeg, features, fit_subjects, LAGS)
-    averages, counts, grand = melody_averages(fit_eeg, fit_subjects)
+    averages, _counts, grand = melody_averages(fit_eeg, fit_subjects)
     del fit_eeg
     penalties = (np.trace(xtx) / xtx.shape[0]) * np.logspace(-6, 2, 17)
     print("loading development EEG", flush=True)
@@ -206,9 +212,9 @@ def main():
             return predict_window(beta, features[name], 2 * WIN, 4 * WIN, LAGS)
         return predict
 
-    def average_predictor(shrinkage):
+    def average_predictor(weight):
         def predict(name, _subject):
-            waveform = shrunk_average(averages[name], counts[name], grand, shrinkage)
+            waveform = weighted_template(averages[name], grand, weight)
             return waveform[2 * WIN:4 * WIN]
         return predict
 
@@ -221,14 +227,14 @@ def main():
         if best_dev is None or report["mse"] < best_dev:
             best_dev = report["mse"]
             best_penalty = float(penalty)
-    best_shrink = None
-    best_shrink_mse = None
-    for shrinkage in SHRINKAGE:
-        report = evaluate_predictions(average_predictor(shrinkage), dev_eeg, dev_subjects)
-        print(f"dev shrinkage={shrinkage} mse={report['mse']:.6f} corr={report['first_30s_correlation']:.4f}", flush=True)
-        if best_shrink_mse is None or report["mse"] < best_shrink_mse:
-            best_shrink_mse = report["mse"]
-            best_shrink = shrinkage
+    best_weight = None
+    best_weight_mse = None
+    for weight in TEMPLATE_WEIGHTS:
+        report = evaluate_predictions(average_predictor(weight), dev_eeg, dev_subjects)
+        print(f"dev template_weight={weight:.2f} mse={report['mse']:.6f} corr={report['first_30s_correlation']:.4f}", flush=True)
+        if best_weight_mse is None or report["mse"] < best_weight_mse:
+            best_weight_mse = report["mse"]
+            best_weight = weight
 
     beta = solve_ridge(xtx, xty, best_penalty)
     print("loading test EEG", flush=True)
@@ -246,8 +252,8 @@ def main():
             return predict_window(beta, features[mapping[name]], 2 * WIN, 4 * WIN, LAGS)
 
         mismatch = evaluate_predictions(mismatched, eeg_map, subjects)
-        melody = evaluate_predictions(average_predictor(best_shrink), eeg_map, subjects)
-        raw = evaluate_predictions(average_predictor(0), eeg_map, subjects)
+        melody = evaluate_predictions(average_predictor(best_weight), eeg_map, subjects)
+        raw = evaluate_predictions(average_predictor(1.0), eeg_map, subjects)
         payload = {
             "split": split,
             "subjects": subjects,
@@ -256,7 +262,8 @@ def main():
             "same_melody_average": melody,
             "same_melody_average_unshrunk": raw,
             "ridge_penalty": best_penalty,
-            "melody_shrinkage": best_shrink,
+            "melody_template_weight": best_weight,
+            "template_weights_searched": TEMPLATE_WEIGHTS,
             "lags_samples": LAGS.tolist(),
             "compact_features": "8 log-mel bands, envelope, onset",
             "fit_samples": int(count),

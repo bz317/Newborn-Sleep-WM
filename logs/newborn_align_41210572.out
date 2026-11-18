@@ -1,0 +1,73 @@
+JobID 41210572 newborn alignment checks on cpu-q-77 at Wed Nov 18 02:04:53 GMT 2026
+alignment order True table True attacks True
+loading audio01
+stored audio01 subjects=44
+loading audio02
+stored audio02 subjects=44
+loading audio03
+stored audio03 subjects=44
+loading audio04
+stored audio04 subjects=44
+loading audio05
+stored audio05 subjects=44
+loading audio06
+stored audio06 subjects=44
+loading audio07
+stored audio07 subjects=44
+loading audio08
+stored audio08 subjects=44
+loading audio09
+stored audio09 subjects=44
+loading audio10
+stored audio10 subjects=44
+loading shf01
+stored shf01 subjects=44
+loading shf05
+stored shf05 subjects=44
+loading shf08
+stored shf08 subjects=44
+loading shf10
+stored shf10 subjects=44
+dev template w=0.00 mse=0.979524
+dev template w=0.10 mse=0.979620
+dev template w=0.20 mse=0.980233
+dev template w=0.30 mse=0.981362
+dev template w=0.40 mse=0.983009
+dev template w=0.50 mse=0.985173
+dev template w=0.60 mse=0.987853
+dev template w=0.70 mse=0.991051
+dev template w=0.80 mse=0.994766
+dev template w=0.90 mse=0.998997
+dev template w=1.00 mse=1.003746
+split-half even_odd
+split-half first_second
+split-half seed1
+dev within lambda=1.000e-04 own_r=0.00585
+dev within lambda=1.000e-03 own_r=0.00586
+dev within lambda=1.000e-02 own_r=0.00590
+dev within lambda=1.000e-01 own_r=0.00616
+dev within lambda=1.000e+00 own_r=0.00701
+dev within lambda=1.000e+01 own_r=0.00720
+dev within lambda=1.000e+02 own_r=0.00708
+dev within lambda=1.000e+03 own_r=0.00706
+dev within lambda=1.000e+04 own_r=0.00705
+dev within lambda=1.000e+05 own_r=0.00705
+dev within lambda=1.000e+06 own_r=0.00705
+dev within lambda=1.000e+07 own_r=0.00705
+dev within lambda=1.000e+08 own_r=0.00705
+dev across lambda=1.000e-04 own_r=0.00547
+dev across lambda=1.000e-03 own_r=0.00548
+dev across lambda=1.000e-02 own_r=0.00559
+dev across lambda=1.000e-01 own_r=0.00586
+dev across lambda=1.000e+00 own_r=0.00613
+dev across lambda=1.000e+01 own_r=0.00612
+dev across lambda=1.000e+02 own_r=0.00602
+dev across lambda=1.000e+03 own_r=0.00600
+dev across lambda=1.000e+04 own_r=0.00600
+dev across lambda=1.000e+05 own_r=0.00600
+dev across lambda=1.000e+06 own_r=0.00600
+dev across lambda=1.000e+07 own_r=0.00600
+dev across lambda=1.000e+08 own_r=0.00600
+scoring fit babies
+eeg checks written
+finished at Wed Nov 18 02:13:10 GMT 2026
